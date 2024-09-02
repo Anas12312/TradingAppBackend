@@ -2,6 +2,7 @@ import express, { json } from "express";
 import tickersRoutes from "./api/tickersRoutes";
 import cors from 'cors'
 import dotenv from 'dotenv'
+import usersRoutes from "./api/usersRoutes";
 dotenv.config()
 // console.log('ENV:' + process.env.AWS_ACCESS_KEY_ID);
 
@@ -12,7 +13,7 @@ const port = process.env.PORT || 3000;
 app.use(json());
 app.use(cors())
 app.use('/tickers', tickersRoutes)
-
+app.use('/', usersRoutes)
 app.listen(port, () => {
     console.log('Server listening on port: ' + port);
 })
