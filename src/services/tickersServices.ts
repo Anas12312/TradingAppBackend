@@ -6,10 +6,26 @@ AWS.config.update({
 });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
+function getTableName() {
+    const currentDate = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    return currentDate;
+    // return "tvtable_20240805";
+}
 async function getAll() {
     const dynamoDB = new AWS.DynamoDB.DocumentClient();
+    const scanData = await getScanTable()
+    const signalData = await getSignalsTable()
+    const signalLogData = await getSignalsLogTable()
+    return {
+        scan: scanData,
+        signal: signalData,
+        signalLogs: signalLogData
+    }
+}
+async function getSignalsTable() {
     const params = {
-        TableName: "scantable_20240830",
+        TableName: "signaltable_20240903",
+        // TableName: "signaltable_" + getTableName(),
     }
     try {
         const data = await dynamoDB.scan(params).promise();
@@ -21,40 +37,97 @@ async function getAll() {
         return []
     }
 }
-async function toggleCheck(ticker: string) {
-    dynamoDB.get({
+async function getSignalsLogTable() {
+    const params = {
+        TableName: "signallogtable_20240902",
+        // TableName: "signallogtable_" + getTableName(),
+    }
+    try {
+        const data = await dynamoDB.scan(params).promise();
+        const tickers = data.Items;
+        const response = prepareData(tickers)
+        return response;
+    } catch (error) {
+        console.error('Error scanning table:', error);
+        return []
+    }
+}
+async function getScanTable() {
+    const params = {
+        TableName: "scantable_20240830",
+        // TableName: "scantable_" + getTableName(),
+        FilterExpression: "inactive = :inactiveVal",
+        ExpressionAttributeValues: {
+            ":inactiveVal": false
+        }
+    }
+    try {
+        const data = await dynamoDB.scan(params).promise();
+        const tickers = data.Items;
+        const response = prepareData(tickers);
+        return response;
+    } catch (error) {
+        console.error('Error scanning table:', error);
+        return [];
+    }
+}
+async function dismissCheck(ticker: string) {
+    dynamoDB.update({
         TableName: 'scantable_20240830',
-        Key: { ticker: ticker } // Replace with your primary key
+        // TableName: "scantable_" + getTableName(),
+        Key: { "ticker": ticker },
+        UpdateExpression: 'SET #booleanAttr = :newValue',
+        ExpressionAttributeNames: {
+            '#booleanAttr': 'inactive'
+        },
+        ExpressionAttributeValues: {
+            ':newValue': true
+        },
     }, (err: Error, data: any) => {
         if (err) {
-            console.error('Unable to get item. Error JSON:', JSON.stringify(err, null, 2));
+            console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
         } else {
-            // console.log(data.Item)
-            // Check if the item exists and has the attribute
-            const currentItem = data.Item;
-            const currentValue = currentItem ? currentItem.Check : false; // Default to false if the item or attribute is missing
-
-            const newValue = !currentValue; // Toggle the boolean value
-
-            // Update with the new toggled value
-            dynamoDB.update({
-                TableName: 'scantable_20240830',
-                Key: { "ticker": ticker }, // Replace with your primary key
-                UpdateExpression: 'SET #booleanAttr = :newValue',
-                ExpressionAttributeNames: {
-                    '#booleanAttr': 'Check' // Replace with your boolean attribute name
-                },
-                ExpressionAttributeValues: {
-                    ':newValue': newValue
-                },
-                // ReturnValues: 'UPDATED_NEW'
-            }, (err: Error, data: any) => {
-                if (err) {
-                    console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
-                } else {
-                    console.log('Item updated:', JSON.stringify(data, null, 2));
-                }
-            });
+            console.log('Item updated:', JSON.stringify(data, null, 2));
+        }
+    });
+}
+async function activateAlerts(ticker: string) {
+    dynamoDB.update({
+        TableName: 'scantable_20240830',
+        // TableName: "scantable_" + getTableName(),
+        Key: { "ticker": ticker },
+        UpdateExpression: 'SET #booleanAttr = :newValue',
+        ExpressionAttributeNames: {
+            '#booleanAttr': 'status'
+        },
+        ExpressionAttributeValues: {
+            ':newValue': 1
+        },
+    }, (err: Error, data: any) => {
+        if (err) {
+            console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+        } else {
+            console.log('Item updated:', JSON.stringify(data, null, 2));
+        }
+    });
+}
+async function deactivateAlerts(ticker: string) {
+    dynamoDB.update({
+        // TableName: 'tvtable_20240830',
+        TableName: "tvtable_" + getTableName(),
+        Key: { "ticker": ticker },
+        UpdateExpression: 'SET #booleanAttr = :newValue',
+        ExpressionAttributeNames: {
+            '#booleanAttr': 'status'
+        },
+        ExpressionAttributeValues: {
+            ':newValue': 5
+        },
+    }, (err: Error, data: any) => {
+        if (err) {
+            console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+        } else {
+            console.log('Item updated:', JSON.stringify(data, null, 2));
         }
     });
 }
@@ -71,9 +144,7 @@ async function remove(ticker: string) {
     }
 }
 function prepareData(tickers: any) {
-    const headers = Object.keys(tickers[0]).filter((key) => {
-        return key !== "Check" && key !== "priceChart"
-    }).map((key) => {
+    const headers = Object.keys(tickers[0]).map((key) => {
         return {
             name: key,
             type: checkType(key)
@@ -92,6 +163,8 @@ function checkType(value: any) {
 
 export default {
     getAll,
-    toggleCheck,
-    remove
+    dismissCheck,
+    remove,
+    activateAlerts,
+    deactivateAlerts
 }

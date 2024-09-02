@@ -6,9 +6,23 @@ async function getAll(req: Request, res: Response) {
     // console.log(tickers)
     res.send(tickers)
 }
-async function toggleCheck(req: Request, res: Response) {
+async function dismiss(req: Request, res: Response) {
     const ticker = req.params.ticker
-    const results = await tickersServices.toggleCheck(ticker)
+    const results = await tickersServices.dismissCheck(ticker)
+    res.send({
+        message: "done"
+    })
+}
+async function activateAlerts(req: Request, res: Response) {
+    const ticker = req.params.ticker
+    const results = await tickersServices.activateAlerts(ticker)
+    res.send({
+        message: "done"
+    })
+}
+async function deactivateAlerts(req: Request, res: Response) {
+    const ticker = req.params.ticker
+    const results = await tickersServices.deactivateAlerts(ticker)
     res.send({
         message: "done"
     })
@@ -22,6 +36,8 @@ async function remove(req: Request, res: Response) {
 }
 export default {
     getAll,
-    toggleCheck,
-    remove
+    dismiss,
+    remove,
+    activateAlerts,
+    deactivateAlerts
 }
