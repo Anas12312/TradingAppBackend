@@ -2,9 +2,14 @@ import { Request, Response } from "express";
 import tickersServices from "../services/tickersServices";
 
 async function getAll(req: Request, res: Response) {
-    const tickers = await tickersServices.getAll()
+    try {
+        const tickers = await tickersServices.getAll()
     // console.log(tickers)
     res.send(tickers)
+    }
+    catch(e) {
+        res.status(500).send(e)
+    }
 }
 async function dismiss(req: Request, res: Response) {
     const ticker = req.params.ticker
