@@ -11,11 +11,34 @@ function getTableName() {
     return currentDate;
     // return "tvtable_20240805";
 }
+
+interface Result {
+    records: any[]
+}
+
 async function getAll() {
     const dynamoDB = new AWS.DynamoDB.DocumentClient();
-    const scanData = await getScanTable()
-    const signalData = await getSignalsTable()
-    const signalLogData = await getSignalsLogTable()
+    const scanData = (await getScanTable()) as Result
+    const signalData = (await getSignalsTable()) as Result
+
+    signalData.records = signalData.records.map(x => {
+        const scan = scanData.records.filter(z => z.ticker === x.ticker)[0]
+        return {
+            ...x,
+            volume_today: scan.volume_today,
+        }
+    })
+
+    const signalLogData = (await getSignalsLogTable()) as Result
+
+    signalLogData.records = signalLogData.records.map(x => {
+        const scan = scanData.records.filter(z => z.ticker === x.ticker)[0]
+        return {
+            ...x,
+            volume_today: scan.volume_today,
+        }
+    })
+
     return {
         scan: scanData,
         signal: signalData,
@@ -141,7 +164,7 @@ async function intrade(ticker: string) {
             '#booleanAttr': 'intrade'
         },
         ExpressionAttributeValues: {
-            ':newValue': 1
+            ':newValue': true
         },
     }, (err: Error, data: any) => {
         if (err) {
