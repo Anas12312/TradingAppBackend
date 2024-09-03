@@ -154,6 +154,26 @@ async function deactivateAlerts(ticker: string) {
         }
     });
 }
+async function intrade(ticker: string) {
+    dynamoDB.update({
+        TableName: 'scantable_20240830',
+        // TableName: "scantable_" + getTableName(),
+        Key: { "ticker": ticker },
+        UpdateExpression: 'SET #booleanAttr = :newValue',
+        ExpressionAttributeNames: {
+            '#booleanAttr': 'intrade'
+        },
+        ExpressionAttributeValues: {
+            ':newValue': 1
+        },
+    }, (err: Error, data: any) => {
+        if (err) {
+            console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+        } else {
+            console.log('Item updated:', JSON.stringify(data, null, 2));
+        }
+    });
+}
 async function remove(ticker: string) {
     const params = {
         TableName: "scantable_20240830",
@@ -170,7 +190,7 @@ function prepareData(tickers: any) {
     const headers = Object.keys(tickers[0]).map((key) => {
         return {
             name: key,
-            type: checkType(key)
+            type: checkType(key, tickers[0])
         }
     })
     return {
@@ -178,10 +198,11 @@ function prepareData(tickers: any) {
         records: tickers
     }
 }
-function checkType(value: any) {
-    if (typeof value === "number") return "Number"
-    if (typeof value === "string") return "String"
-    if (value instanceof Date && !isNaN(value.getTime())) return "Date"
+function checkType(value: any, ticker: any) {
+    if (typeof ticker[value] === "number") return "Number"
+    const datePattern = /^\d{1,2}\/\d{1,2}\/\d{4} \d{1,2}:\d{2}$/;
+    if (datePattern.test(ticker[value])) return "Date"
+    if (typeof ticker[value] === "string") return "String"
 }
 
 export default {
@@ -189,5 +210,6 @@ export default {
     dismissCheck,
     remove,
     activateAlerts,
-    deactivateAlerts
+    deactivateAlerts,
+    intrade
 }
