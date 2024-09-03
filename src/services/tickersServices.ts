@@ -164,7 +164,7 @@ async function intrade(ticker: string) {
             '#booleanAttr': 'intrade'
         },
         ExpressionAttributeValues: {
-            ':newValue': 1
+            ':newValue': true
         },
     }, (err: Error, data: any) => {
         if (err) {

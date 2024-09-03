@@ -51,5 +51,6 @@ export default {
     dismiss,
     remove,
     activateAlerts,
-    deactivateAlerts
+    deactivateAlerts,
+    intrade
 }
