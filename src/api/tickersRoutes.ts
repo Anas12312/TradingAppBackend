@@ -7,6 +7,7 @@ tickersRoutes.get('/', tickersController.getAll)
 tickersRoutes.post('/dismiss/:ticker', tickersController.dismiss)
 tickersRoutes.post('/activate/:ticker', tickersController.activateAlerts)
 tickersRoutes.post('/deactivate/:ticker', tickersController.deactivateAlerts)
+tickersRoutes.post('/intrade/:ticker', tickersController.intrade)
 tickersRoutes.delete('/:ticker', tickersController.remove)
 
 export default tickersRoutes
