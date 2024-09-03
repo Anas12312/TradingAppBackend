@@ -27,6 +27,13 @@ async function deactivateAlerts(req: Request, res: Response) {
         message: "done"
     })
 }
+async function intrade(req: Request, res: Response) {
+    const ticker = req.params.ticker
+    const results = await tickersServices.intrade(ticker)
+    res.send({
+        message: "done"
+    })
+}
 async function remove(req: Request, res: Response) {
     const ticker = req.params.ticker
     const results = await tickersServices.remove(ticker)

@@ -131,6 +131,26 @@ async function deactivateAlerts(ticker: string) {
         }
     });
 }
+async function intrade(ticker: string) {
+    dynamoDB.update({
+        TableName: 'scantable_20240830',
+        // TableName: "scantable_" + getTableName(),
+        Key: { "ticker": ticker },
+        UpdateExpression: 'SET #booleanAttr = :newValue',
+        ExpressionAttributeNames: {
+            '#booleanAttr': 'intrade'
+        },
+        ExpressionAttributeValues: {
+            ':newValue': 1
+        },
+    }, (err: Error, data: any) => {
+        if (err) {
+            console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+        } else {
+            console.log('Item updated:', JSON.stringify(data, null, 2));
+        }
+    });
+}
 async function remove(ticker: string) {
     const params = {
         TableName: "scantable_20240830",
@@ -167,5 +187,6 @@ export default {
     dismissCheck,
     remove,
     activateAlerts,
-    deactivateAlerts
+    deactivateAlerts,
+    intrade
 }
