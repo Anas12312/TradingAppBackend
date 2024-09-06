@@ -4,10 +4,10 @@ import tickersServices from "../services/tickersServices";
 async function getAll(req: Request, res: Response) {
     try {
         const tickers = await tickersServices.getAll()
-    // console.log(tickers)
-    res.send(tickers)
+        res.send(tickers)
     }
-    catch(e) {
+    catch (e) {
+        console.log(e);
         res.status(500).send(e)
     }
 }

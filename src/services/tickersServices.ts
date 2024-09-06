@@ -21,8 +21,11 @@ async function getAll() {
     const scanData = (await getScanTable()) as Result
     const signalData = (await getSignalsTable()) as Result
 
+
     signalData.records = signalData.records.map(x => {
         const scan = scanData.records.filter(z => z.ticker === x.ticker)[0]
+        if(!scan) return x
+
         return {
             ...x,
             volume_today: scan.volume_today,
@@ -33,6 +36,7 @@ async function getAll() {
 
     signalLogData.records = signalLogData.records.map(x => {
         const scan = scanData.records.filter(z => z.ticker === x.ticker)[0]
+        if(!scan) return x
         return {
             ...x,
             volume_today: scan.volume_today,
@@ -77,7 +81,7 @@ async function getSignalsLogTable() {
 }
 async function getScanTable() {
     const params = {
-        TableName: "scantable_20240830",
+        TableName: "scantable_20240904",
         // TableName: "scantable_" + getTableName(),
         FilterExpression: "inactive = :inactiveVal",
         ExpressionAttributeValues: {
