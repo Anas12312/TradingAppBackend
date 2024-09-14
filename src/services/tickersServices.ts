@@ -1,8 +1,6 @@
 const AWS = require('aws-sdk');
 AWS.config.update({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: 'us-east-1'
+    region: 'us-east-2'
 });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
@@ -21,71 +19,73 @@ async function getAll() {
     const scanData = (await getScanTable()) as Result
     const signalData = (await getSignalsTable()) as Result
 
-
     signalData.records = signalData.records.map(x => {
         const scan = scanData.records.filter(z => z.ticker === x.ticker)[0]
-        if(!scan) return x
+        if (!scan) return x
 
         return {
             ...x,
             volume_today: scan.volume_today,
         }
     })
+
 
     const signalLogData = (await getSignalsLogTable()) as Result
 
     signalLogData.records = signalLogData.records.map(x => {
         const scan = scanData.records.filter(z => z.ticker === x.ticker)[0]
-        if(!scan) return x
+        if (!scan) return x
         return {
             ...x,
             volume_today: scan.volume_today,
         }
     })
 
-    return {
+    const response = {
         scan: scanData,
         signal: signalData,
         signalLogs: signalLogData
     }
+    console.log(response)
+    return response
 }
 async function getSignalsTable() {
     const params = {
-        TableName: "signaltable_20240903",
+        TableName: "signaltable_20240912",
         // TableName: "signaltable_" + getTableName(),
     }
     try {
         const data = await dynamoDB.scan(params).promise();
         const tickers = data.Items;
         const response = prepareData(tickers)
-        return response;
+        return response || [];
     } catch (error) {
-        console.error('Error scanning table:', error);
-        return []
+        console.error('Error scanning signals table:', error);
+        return prepareData([])
     }
 }
 async function getSignalsLogTable() {
     const params = {
-        TableName: "signallogtable_20240902",
+        TableName: "signallogtable_20240912",
         // TableName: "signallogtable_" + getTableName(),
     }
     try {
         const data = await dynamoDB.scan(params).promise();
         const tickers = data.Items;
         const response = prepareData(tickers)
-        return response;
+        return response || [];
     } catch (error) {
-        console.error('Error scanning table:', error);
-        return []
+        console.error('Error scanning logs table:', error);
+        return prepareData([])
     }
 }
 async function getScanTable() {
     const params = {
-        TableName: "scantable_20240904",
+        TableName: "scantable_20240912",
         // TableName: "scantable_" + getTableName(),
         FilterExpression: "inactive = :inactiveVal",
         ExpressionAttributeValues: {
-            ":inactiveVal": false
+            ":inactiveVal": 0
         }
     }
     try {
@@ -94,13 +94,13 @@ async function getScanTable() {
         const response = prepareData(tickers);
         return response;
     } catch (error) {
-        console.error('Error scanning table:', error);
+        console.error('Error scanning scan table:', error);
         return [];
     }
 }
 async function dismissCheck(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240830',
+        TableName: 'scantable_20240912',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -108,7 +108,7 @@ async function dismissCheck(ticker: string) {
             '#booleanAttr': 'inactive'
         },
         ExpressionAttributeValues: {
-            ':newValue': true
+            ':newValue': 1
         },
     }, (err: Error, data: any) => {
         if (err) {
@@ -120,7 +120,7 @@ async function dismissCheck(ticker: string) {
 }
 async function activateAlerts(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240830',
+        TableName: 'scantable_20240912',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -160,7 +160,7 @@ async function deactivateAlerts(ticker: string) {
 }
 async function intrade(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240830',
+        TableName: 'scantable_20240912',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -180,7 +180,7 @@ async function intrade(ticker: string) {
 }
 async function remove(ticker: string) {
     const params = {
-        TableName: "scantable_20240830",
+        TableName: "scantable_20240912",
         Key: { "ticker": ticker },
     };
     try {
@@ -191,15 +191,19 @@ async function remove(ticker: string) {
     }
 }
 function prepareData(tickers: any) {
-    const headers = Object.keys(tickers[0]).map((key) => {
-        return {
-            name: key,
-            type: checkType(key, tickers[0])
-        }
-    })
+    let headers: any[] = []
+    if (tickers.length) {
+        headers = Object.keys(tickers[0]).map((key) => {
+            return {
+                name: key,
+                type: checkType(key, tickers[0])
+            }
+        })
+
+    }
     return {
         headers,
-        records: tickers
+        records: tickers || []
     }
 }
 function checkType(value: any, ticker: any) {
