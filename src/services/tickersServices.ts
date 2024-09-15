@@ -1,8 +1,8 @@
 const AWS = require('aws-sdk');
 AWS.config.update({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: 'us-east-1'
+    // accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    // secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: 'us-east-2'
 });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
@@ -55,7 +55,7 @@ async function getAll() {
 }
 async function getSignalsTable() {
     const params = {
-        TableName: "signaltable_20240903",
+        TableName: "signaltable_20240912",
         // TableName: "signaltable_" + getTableName(),
     }
     try {
@@ -70,7 +70,7 @@ async function getSignalsTable() {
 }
 async function getSignalsLogTable() {
     const params = {
-        TableName: "signallogtable_20240902",
+        TableName: "signallogtable_20240912",
         // TableName: "signallogtable_" + getTableName(),
     }
     try {
@@ -85,11 +85,11 @@ async function getSignalsLogTable() {
 }
 async function getScanTable() {
     const params = {
-        TableName: "scantable_20240904",
+        TableName: "scantable_20240912",
         // TableName: "scantable_" + getTableName(),
         FilterExpression: "inactive = :inactiveVal",
         ExpressionAttributeValues: {
-            ":inactiveVal": false
+            ":inactiveVal": 0
         }
     }
     try {
@@ -104,11 +104,11 @@ async function getScanTable() {
 }
 async function getInactiveScanTable() {
     const params = {
-        TableName: "scantable_20240904",
+        TableName: "scantable_20240912",
         // TableName: "scantable_" + getTableName(),
         FilterExpression: "inactive = :inactiveVal",
         ExpressionAttributeValues: {
-            ":inactiveVal": true
+            ":inactiveVal": 1
         }
     }
     try {
@@ -123,7 +123,7 @@ async function getInactiveScanTable() {
 }
 async function dismissCheck(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240904',
+        TableName: 'scantable_20240912',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -131,7 +131,7 @@ async function dismissCheck(ticker: string) {
             '#booleanAttr': 'inactive'
         },
         ExpressionAttributeValues: {
-            ':newValue': true
+            ':newValue': 1
         },
     }, (err: Error, data: any) => {
         if (err) {
@@ -143,7 +143,7 @@ async function dismissCheck(ticker: string) {
 }
 async function activeTicker(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240904',
+        TableName: 'scantable_20240912',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -151,7 +151,7 @@ async function activeTicker(ticker: string) {
             '#booleanAttr': 'inactive'
         },
         ExpressionAttributeValues: {
-            ':newValue': false
+            ':newValue': 0
         },
     }, (err: Error, data: any) => {
         if (err) {
@@ -163,7 +163,7 @@ async function activeTicker(ticker: string) {
 }
 async function activateAlerts(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240904',
+        TableName: 'scantable_20240912',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -203,7 +203,7 @@ async function deactivateAlerts(ticker: string) {
 }
 async function intrade(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240904',
+        TableName: 'scantable_20240912',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -223,7 +223,7 @@ async function intrade(ticker: string) {
 }
 async function remove(ticker: string) {
     const params = {
-        TableName: "scantable_20240904",
+        TableName: "scantable_20240912",
         Key: { "ticker": ticker },
     };
     try {
