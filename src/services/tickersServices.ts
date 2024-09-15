@@ -1,6 +1,8 @@
 const AWS = require('aws-sdk');
 AWS.config.update({
-    region: 'us-east-2'
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: 'us-east-1'
 });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
@@ -51,7 +53,7 @@ async function getAll() {
 }
 async function getSignalsTable() {
     const params = {
-        TableName: "signaltable_20240912",
+        TableName: "signaltable_20240903",
         // TableName: "signaltable_" + getTableName(),
     }
     try {
@@ -66,7 +68,7 @@ async function getSignalsTable() {
 }
 async function getSignalsLogTable() {
     const params = {
-        TableName: "signallogtable_20240912",
+        TableName: "signallogtable_20240902",
         // TableName: "signallogtable_" + getTableName(),
     }
     try {
@@ -81,26 +83,26 @@ async function getSignalsLogTable() {
 }
 async function getScanTable() {
     const params = {
-        TableName: "scantable_20240912",
+        TableName: "scantable_20240904",
         // TableName: "scantable_" + getTableName(),
         FilterExpression: "inactive = :inactiveVal",
         ExpressionAttributeValues: {
-            ":inactiveVal": 0
+            ":inactiveVal": false
         }
     }
     try {
         const data = await dynamoDB.scan(params).promise();
         const tickers = data.Items;
         const response = prepareData(tickers);
-        return response;
+        return response || [];
     } catch (error) {
         console.error('Error scanning scan table:', error);
-        return [];
+        return prepareData([]);
     }
 }
 async function dismissCheck(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240912',
+        TableName: 'scantable_20240904',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -108,7 +110,7 @@ async function dismissCheck(ticker: string) {
             '#booleanAttr': 'inactive'
         },
         ExpressionAttributeValues: {
-            ':newValue': 1
+            ':newValue': true
         },
     }, (err: Error, data: any) => {
         if (err) {
@@ -120,7 +122,7 @@ async function dismissCheck(ticker: string) {
 }
 async function activateAlerts(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240912',
+        TableName: 'scantable_20240904',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -160,7 +162,7 @@ async function deactivateAlerts(ticker: string) {
 }
 async function intrade(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240912',
+        TableName: 'scantable_20240904',
         // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
@@ -180,7 +182,7 @@ async function intrade(ticker: string) {
 }
 async function remove(ticker: string) {
     const params = {
-        TableName: "scantable_20240912",
+        TableName: "scantable_20240904",
         Key: { "ticker": ticker },
     };
     try {
