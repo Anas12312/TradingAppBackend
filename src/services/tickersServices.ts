@@ -19,6 +19,7 @@ interface Result {
 async function getAll() {
     const dynamoDB = new AWS.DynamoDB.DocumentClient();
     const scanData = (await getScanTable()) as Result
+    const inactiveData = (await getInactiveScanTable()) as Result
     const signalData = (await getSignalsTable()) as Result
 
     signalData.records = signalData.records.map(x => {
@@ -46,7 +47,8 @@ async function getAll() {
     const response = {
         scan: scanData,
         signal: signalData,
-        signalLogs: signalLogData
+        signalLogs: signalLogData,
+        inactive: inactiveData
     }
     console.log(response)
     return response
@@ -100,6 +102,25 @@ async function getScanTable() {
         return prepareData([]);
     }
 }
+async function getInactiveScanTable() {
+    const params = {
+        TableName: "scantable_20240904",
+        // TableName: "scantable_" + getTableName(),
+        FilterExpression: "inactive = :inactiveVal",
+        ExpressionAttributeValues: {
+            ":inactiveVal": true
+        }
+    }
+    try {
+        const data = await dynamoDB.scan(params).promise();
+        const tickers = data.Items;
+        const response = prepareData(tickers);
+        return response || [];
+    } catch (error) {
+        console.error('Error scanning scan table:', error);
+        return prepareData([]);
+    }
+}
 async function dismissCheck(ticker: string) {
     dynamoDB.update({
         TableName: 'scantable_20240904',
@@ -111,6 +132,26 @@ async function dismissCheck(ticker: string) {
         },
         ExpressionAttributeValues: {
             ':newValue': true
+        },
+    }, (err: Error, data: any) => {
+        if (err) {
+            console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+        } else {
+            console.log('Item updated:', JSON.stringify(data, null, 2));
+        }
+    });
+}
+async function activeTicker(ticker: string) {
+    dynamoDB.update({
+        TableName: 'scantable_20240904',
+        // TableName: "scantable_" + getTableName(),
+        Key: { "ticker": ticker },
+        UpdateExpression: 'SET #booleanAttr = :newValue',
+        ExpressionAttributeNames: {
+            '#booleanAttr': 'inactive'
+        },
+        ExpressionAttributeValues: {
+            ':newValue': false
         },
     }, (err: Error, data: any) => {
         if (err) {
@@ -221,5 +262,6 @@ export default {
     remove,
     activateAlerts,
     deactivateAlerts,
-    intrade
+    intrade,
+    activeTicker
 }

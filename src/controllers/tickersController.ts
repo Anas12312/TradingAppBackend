@@ -18,6 +18,13 @@ async function dismiss(req: Request, res: Response) {
         message: "done"
     })
 }
+async function activeTicker(req: Request, res: Response) {
+    const ticker = req.params.ticker
+    const results = await tickersServices.activeTicker(ticker)
+    res.send({
+        message: "done"
+    })
+}
 async function activateAlerts(req: Request, res: Response) {
     const ticker = req.params.ticker
     const results = await tickersServices.activateAlerts(ticker)
@@ -52,5 +59,6 @@ export default {
     remove,
     activateAlerts,
     deactivateAlerts,
-    intrade
+    intrade,
+    activeTicker
 }
