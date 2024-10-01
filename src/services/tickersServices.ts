@@ -20,7 +20,7 @@ let SCAN_DATA: Result
 let INACTIVE_DATA: Result
 let SIGNAL_DATA: Result
 let SIGNAL_LOG_DATA: Result
-
+let INTRADE_DATA: Result
 async function readDynamo() {
     try {
         const dynamoDB = new AWS.DynamoDB.DocumentClient();
@@ -28,7 +28,7 @@ async function readDynamo() {
         INACTIVE_DATA = (await getInactiveScanTable()) as Result
         SIGNAL_DATA = (await getSignalsTable()) as Result
         SIGNAL_LOG_DATA = (await getSignalsLogTable()) as Result
-
+        INTRADE_DATA = (await getIntradeTable()) as Result
         if (_SCAN_DATA.records.length > 0) {
             SCAN_DATA = _SCAN_DATA
         }
@@ -52,14 +52,14 @@ async function readDynamo() {
 
 readDynamo()
 
-setInterval(readDynamo, 1000)
+setInterval(readDynamo, 30_000)
 
 async function getAll() {
     const dynamoDB = new AWS.DynamoDB.DocumentClient();
     const scanData = SCAN_DATA
     const inactiveData = INACTIVE_DATA
     const signalData = SIGNAL_DATA
-
+    const intradeData = INTRADE_DATA
     signalData.records = signalData.records.map(x => {
         const scan = scanData.records.filter(z => z.ticker === x.ticker)[0]
         if (!scan) return x
@@ -94,10 +94,27 @@ async function getAll() {
         scan: scanData,
         signal: signalData,
         signalLogs: signalLogData,
-        inactive: inactiveData
+        inactive: inactiveData,
+        intrade: intradeData
     }
     console.log(response)
     return response
+}
+async function getIntradeTable() {
+    const params = {
+        TableName: "intrade_20241001",
+        // TableName: "signaltable_" + getTableName(),
+    }
+
+    try {
+        const data = await dynamoDB.scan(params).promise();
+        const tickers = data.Items;
+        const response = prepareData(tickers)
+        return response || [];
+    } catch (error) {
+        console.error('Error scanning intrade table:', error);
+        return prepareData([])
+    }
 }
 async function getSignalsTable() {
     const params = {
@@ -269,6 +286,26 @@ async function intrade(ticker: string) {
         }
     });
 }
+async function detrade(ticker: string) {
+    dynamoDB.update({
+        TableName: 'scantable_20240904',
+        // TableName: "scantable_" + getTableName(),
+        Key: { "ticker": ticker },
+        UpdateExpression: 'SET #booleanAttr = :newValue',
+        ExpressionAttributeNames: {
+            '#booleanAttr': 'intrade'
+        },
+        ExpressionAttributeValues: {
+            ':newValue': false
+        },
+    }, (err: Error, data: any) => {
+        if (err) {
+            console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+        } else {
+            console.log('Item updated:', JSON.stringify(data, null, 2));
+        }
+    });
+}
 async function remove(ticker: string) {
     const params = {
         TableName: "scantable_20240904",
@@ -311,5 +348,6 @@ export default {
     activateAlerts,
     deactivateAlerts,
     intrade,
-    activeTicker
+    activeTicker,
+    detrade
 }
