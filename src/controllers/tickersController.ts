@@ -46,6 +46,13 @@ async function intrade(req: Request, res: Response) {
         message: "done"
     })
 }
+async function detrade(req: Request, res: Response) {
+    const ticker = req.params.ticker
+    const results = await tickersServices.detrade(ticker)
+    res.send({
+        message: "done"
+    })
+}
 async function remove(req: Request, res: Response) {
     const ticker = req.params.ticker
     const results = await tickersServices.remove(ticker)
@@ -60,5 +67,6 @@ export default {
     activateAlerts,
     deactivateAlerts,
     intrade,
+    detrade,
     activeTicker
 }
