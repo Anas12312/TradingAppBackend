@@ -1,8 +1,8 @@
 const AWS = require('aws-sdk');
 AWS.config.update({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: 'us-east-1'
+    // accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    // secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: 'us-east-2'
 });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
@@ -13,14 +13,30 @@ function getTableName() {
 }
 
 interface Result {
+    headers: any[]
     records: any[]
 }
 
-let SCAN_DATA: Result
-let INACTIVE_DATA: Result
-let SIGNAL_DATA: Result
-let SIGNAL_LOG_DATA: Result
-let INTRADE_DATA: Result
+let SCAN_DATA: Result = {
+    headers: [],
+    records: []
+}
+let INACTIVE_DATA: Result = {
+    headers: [],
+    records: []
+}
+let SIGNAL_DATA: Result = {
+    headers: [],
+    records: []
+}
+let SIGNAL_LOG_DATA: Result = {
+    headers: [],
+    records: []
+}
+let INTRADE_DATA: Result = {
+    headers: [],
+    records: []
+}
 async function readDynamo() {
     try {
         const dynamoDB = new AWS.DynamoDB.DocumentClient();
@@ -60,7 +76,13 @@ async function getAll() {
     const inactiveData = INACTIVE_DATA
     const signalData = SIGNAL_DATA
     const intradeData = INTRADE_DATA
-    signalData.records = signalData.records.map(x => {
+    intradeData.records = intradeData.records.filter((ticker) => {
+        if(scanData?.records.find(t => ticker.ticker === t.ticker)?.intrade == "True") {
+            return true
+        }
+        return false
+    })
+    signalData.records = signalData?.records.map(x => {
         const scan = scanData.records.filter(z => z.ticker === x.ticker)[0]
         if (!scan) return x
 
@@ -74,7 +96,7 @@ async function getAll() {
         }
     })
 
-
+    // console.log("intrade", scanData.records.map(x => x.intrade))
     const signalLogData = SIGNAL_LOG_DATA
 
     signalLogData.records = signalLogData.records.map(x => {
@@ -97,13 +119,13 @@ async function getAll() {
         inactive: inactiveData,
         intrade: intradeData
     }
-    console.log(response)
+    // console.log(response)
     return response
 }
 async function getIntradeTable() {
     const params = {
-        TableName: "intrade_20241001",
-        // TableName: "signaltable_" + getTableName(),
+        // TableName: "intrade_20241001",
+        TableName: "intradetable_" + getTableName(),
     }
 
     try {
@@ -118,8 +140,8 @@ async function getIntradeTable() {
 }
 async function getSignalsTable() {
     const params = {
-        TableName: "signaltable_20240903",
-        // TableName: "signaltable_" + getTableName(),
+        // TableName: "signaltable_20240903",
+        TableName: "signaltable_" + getTableName(),
     }
 
     try {
@@ -134,8 +156,8 @@ async function getSignalsTable() {
 }
 async function getSignalsLogTable() {
     const params = {
-        TableName: "signallogtable_20240902",
-        // TableName: "signallogtable_" + getTableName(),
+        // TableName: "signallogtable_20240902",
+        TableName: "signallogtable_" + getTableName(),
     }
     try {
         const data = await dynamoDB.scan(params).promise();
@@ -149,11 +171,11 @@ async function getSignalsLogTable() {
 }
 async function getScanTable() {
     const params = {
-        TableName: "scantable_20240904",
-        // TableName: "scantable_" + getTableName(),
+        // TableName: "scantable_20240904",
+        TableName: "scantable_" + getTableName(),
         FilterExpression: "inactive = :inactiveVal",
         ExpressionAttributeValues: {
-            ":inactiveVal": false
+            ":inactiveVal": "False"
         }
     }
     console.log("scantable_" + getTableName())
@@ -169,11 +191,11 @@ async function getScanTable() {
 }
 async function getInactiveScanTable() {
     const params = {
-        TableName: "scantable_20240904",
-        // TableName: "scantable_" + getTableName(),
+        // TableName: "scantable_20240904",
+        TableName: "scantable_" + getTableName(),
         FilterExpression: "inactive = :inactiveVal",
         ExpressionAttributeValues: {
-            ":inactiveVal": true
+            ":inactiveVal": "True"
         }
     }
     try {
@@ -188,15 +210,15 @@ async function getInactiveScanTable() {
 }
 async function dismissCheck(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240904',
-        // TableName: "scantable_" + getTableName(),
+        // TableName: 'scantable_20240904',
+        TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
             '#booleanAttr': 'inactive'
         },
         ExpressionAttributeValues: {
-            ':newValue': true
+            ':newValue': "True"
         },
     }, (err: Error, data: any) => {
         if (err) {
@@ -207,16 +229,17 @@ async function dismissCheck(ticker: string) {
     });
 }
 async function activeTicker(ticker: string) {
+    console.log(ticker)
     dynamoDB.update({
-        TableName: 'scantable_20240904',
-        // TableName: "scantable_" + getTableName(),
+        // TableName: 'scantable_20240904',
+        TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
             '#booleanAttr': 'inactive'
         },
         ExpressionAttributeValues: {
-            ':newValue': false
+            ':newValue': "False"
         },
     }, (err: Error, data: any) => {
         if (err) {
@@ -228,8 +251,8 @@ async function activeTicker(ticker: string) {
 }
 async function activateAlerts(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240904',
-        // TableName: "scantable_" + getTableName(),
+        // TableName: 'scantable_20240904',
+        TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
@@ -248,8 +271,8 @@ async function activateAlerts(ticker: string) {
 }
 async function deactivateAlerts(ticker: string) {
     dynamoDB.update({
-        TableName: 'tvtable_20240830',
-        // TableName: "tvtable_" + getTableName(),
+        // TableName: 'tvtable_20240830',
+        TableName: "tvtable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
@@ -267,16 +290,17 @@ async function deactivateAlerts(ticker: string) {
     });
 }
 async function intrade(ticker: string) {
+    console.log(ticker)
     dynamoDB.update({
-        TableName: 'scantable_20240904',
-        // TableName: "scantable_" + getTableName(),
+        // TableName: 'scantable_20240904',
+        TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
             '#booleanAttr': 'intrade'
         },
         ExpressionAttributeValues: {
-            ':newValue': true
+            ':newValue': "True"
         },
     }, (err: Error, data: any) => {
         if (err) {
@@ -288,15 +312,15 @@ async function intrade(ticker: string) {
 }
 async function detrade(ticker: string) {
     dynamoDB.update({
-        TableName: 'scantable_20240904',
-        // TableName: "scantable_" + getTableName(),
+        // TableName: 'scantable_20240904',
+        TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
             '#booleanAttr': 'intrade'
         },
         ExpressionAttributeValues: {
-            ':newValue': false
+            ':newValue': "False"
         },
     }, (err: Error, data: any) => {
         if (err) {
