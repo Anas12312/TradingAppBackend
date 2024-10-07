@@ -8,8 +8,8 @@ const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
 function getTableName() {
     const currentDate = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    return currentDate;
-    // return "tvtable_20240805";
+    // return currentDate;
+    return "20241004";
 }
 
 interface Result {
@@ -76,6 +76,21 @@ async function getAll() {
     const inactiveData = INACTIVE_DATA
     const signalData = SIGNAL_DATA
     const intradeData = INTRADE_DATA
+    scanData.records = scanData.records.map(x => {
+        const intrade = intradeData.records.filter(z => z.ticker === x.ticker)[0]
+        if(!intrade) return x
+
+        return {
+            ...x,
+            ema10_bullish: intrade.ema10_bullish,
+            ema10_raising: intrade.ema10_raising,
+            price_angle: intrade.price_angle,
+            smooth_ha: intrade.smooth_ha,
+            trendcatcher_status: intrade.trendcatcher_status,
+            trendtracer_status: intrade.trendtracer_status,
+            vwap_raising: intrade.vwap_raising
+        }
+    })
     intradeData.records = intradeData.records.filter((ticker) => {
         if(scanData?.records.find(t => ticker.ticker === t.ticker)?.intrade == "True") {
             return true
