@@ -9,7 +9,7 @@ const dynamoDB = new AWS.DynamoDB.DocumentClient();
 function getTableName() {
     const currentDate = new Date().toISOString().split('T')[0].replace(/-/g, '');
     return currentDate;
-    // return "tvtable_20240805";
+    // return "20241004";
 }
 
 interface Result {
@@ -48,7 +48,7 @@ async function readDynamo() {
         if (_SCAN_DATA.records.length > 0) {
             SCAN_DATA = _SCAN_DATA
         }
-
+        
         // if (_INACTIVE_DATA && _INACTIVE_DATA.records.length) {
         //     INACTIVE_DATA = _INACTIVE_DATA
         // }
@@ -68,7 +68,7 @@ async function readDynamo() {
 
 readDynamo()
 
-setInterval(readDynamo, 30_000)
+setInterval(readDynamo, 3_000)
 
 async function getAll() {
     const dynamoDB = new AWS.DynamoDB.DocumentClient();
@@ -76,12 +76,34 @@ async function getAll() {
     const inactiveData = INACTIVE_DATA
     const signalData = SIGNAL_DATA
     const intradeData = INTRADE_DATA
+    scanData.records = scanData.records.map(x => {
+        const intrade = intradeData.records.filter(z => z.ticker === x.ticker)[0]
+        if(!intrade) return x
+
+        return {
+            ...x,
+            ema10_bullish: intrade.ema10_bullish,
+            ema10_raising: intrade.ema10_raising,
+            price_angle: intrade.price_angle,
+            smooth_ha: intrade.smooth_ha,
+            trendcatcher_status: intrade.trendcatcher_status,
+            trendtracer_status: intrade.trendtracer_status,
+            vwap_raising: intrade.vwap_raising
+        }
+    })
     intradeData.records = intradeData.records.filter((ticker) => {
         if(scanData?.records.find(t => ticker.ticker === t.ticker)?.intrade == "True") {
             return true
         }
         return false
     })
+    console.log(intradeData.records.map(x => {
+        return {
+            name: x.ticker,
+            smooth_ha: x.smooth_ha
+
+        }
+    }))
     signalData.records = signalData?.records.map(x => {
         const scan = scanData.records.filter(z => z.ticker === x.ticker)[0]
         if (!scan) return x
