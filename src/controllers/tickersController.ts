@@ -53,6 +53,32 @@ async function detrade(req: Request, res: Response) {
         message: "done"
     })
 }
+async function notify(req: Request, res: Response) {
+    const ticker = req.params.ticker
+    const results = await tickersServices.notify(ticker)
+    res.send({
+        message: "done"
+    })
+}
+async function unotify(req: Request, res: Response) {
+    const ticker = req.params.ticker
+    const results = await tickersServices.unotify(ticker)
+    res.send({
+        message: "done"
+    })
+}
+async function notifyAll(req: Request, res: Response) {
+    const results = await tickersServices.notifyAll()
+    res.send({
+        message: "done"
+    })
+}
+async function unotifyAll(req: Request, res: Response) {
+    const results = await tickersServices.unotifyAll()
+    res.send({
+        message: "done"
+    })
+}
 async function remove(req: Request, res: Response) {
     const ticker = req.params.ticker
     const results = await tickersServices.remove(ticker)
@@ -68,5 +94,9 @@ export default {
     deactivateAlerts,
     intrade,
     detrade,
-    activeTicker
+    activeTicker,
+    notify,
+    unotify,
+    notifyAll,
+    unotifyAll
 }

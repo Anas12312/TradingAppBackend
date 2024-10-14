@@ -1,8 +1,11 @@
+import { AsyncLocalStorage } from "async_hooks";
+
 const AWS = require('aws-sdk');
 AWS.config.update({
-    // accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    // secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: 'us-east-2'
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    // region: 'us-east-2',
+    region: 'us-east-1',
 });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
@@ -146,8 +149,8 @@ async function getAll() {
 }
 async function getIntradeTable() {
     const params = {
-        // TableName: "intrade_20241001",
-        TableName: "intradetable_" + getTableName(),
+        TableName: "intrade_20241001",
+        // TableName: "intradetable_" + getTableName(),
     }
 
     try {
@@ -162,8 +165,8 @@ async function getIntradeTable() {
 }
 async function getSignalsTable() {
     const params = {
-        // TableName: "signaltable_20240903",
-        TableName: "signaltable_" + getTableName(),
+        TableName: "signaltable_20240903",
+        // TableName: "signaltable_" + getTableName(),
     }
 
     try {
@@ -178,8 +181,8 @@ async function getSignalsTable() {
 }
 async function getSignalsLogTable() {
     const params = {
-        // TableName: "signallogtable_20240902",
-        TableName: "signallogtable_" + getTableName(),
+        TableName: "signallogtable_20240902",
+        // TableName: "signallogtable_" + getTableName(),
     }
     try {
         const data = await dynamoDB.scan(params).promise();
@@ -193,8 +196,8 @@ async function getSignalsLogTable() {
 }
 async function getScanTable() {
     const params = {
-        // TableName: "scantable_20240904",
-        TableName: "scantable_" + getTableName(),
+        TableName: "scantable_20240904",
+        // TableName: "scantable_" + getTableName(),
         FilterExpression: "inactive = :inactiveVal",
         ExpressionAttributeValues: {
             ":inactiveVal": "False"
@@ -213,8 +216,8 @@ async function getScanTable() {
 }
 async function getInactiveScanTable() {
     const params = {
-        // TableName: "scantable_20240904",
-        TableName: "scantable_" + getTableName(),
+        TableName: "scantable_20240904",
+        // TableName: "scantable_" + getTableName(),
         FilterExpression: "inactive = :inactiveVal",
         ExpressionAttributeValues: {
             ":inactiveVal": "True"
@@ -232,8 +235,8 @@ async function getInactiveScanTable() {
 }
 async function dismissCheck(ticker: string) {
     dynamoDB.update({
-        // TableName: 'scantable_20240904',
-        TableName: "scantable_" + getTableName(),
+        TableName: 'scantable_20240904',
+        // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
@@ -251,10 +254,10 @@ async function dismissCheck(ticker: string) {
     });
 }
 async function activeTicker(ticker: string) {
-    console.log(ticker)
+    // console.log(ticker)
     dynamoDB.update({
-        // TableName: 'scantable_20240904',
-        TableName: "scantable_" + getTableName(),
+        TableName: 'scantable_20240904',
+        // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
@@ -273,8 +276,8 @@ async function activeTicker(ticker: string) {
 }
 async function activateAlerts(ticker: string) {
     dynamoDB.update({
-        // TableName: 'scantable_20240904',
-        TableName: "scantable_" + getTableName(),
+        TableName: 'scantable_20240904',
+        // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
@@ -314,8 +317,8 @@ async function deactivateAlerts(ticker: string) {
 async function intrade(ticker: string) {
     console.log(ticker)
     dynamoDB.update({
-        // TableName: 'scantable_20240904',
-        TableName: "scantable_" + getTableName(),
+        TableName: 'scantable_20240904',
+        // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
@@ -334,8 +337,8 @@ async function intrade(ticker: string) {
 }
 async function detrade(ticker: string) {
     dynamoDB.update({
-        // TableName: 'scantable_20240904',
-        TableName: "scantable_" + getTableName(),
+        TableName: 'scantable_20240904',
+        // TableName: "scantable_" + getTableName(),
         Key: { "ticker": ticker },
         UpdateExpression: 'SET #booleanAttr = :newValue',
         ExpressionAttributeNames: {
@@ -351,6 +354,56 @@ async function detrade(ticker: string) {
             console.log('Item updated:', JSON.stringify(data, null, 2));
         }
     });
+}
+async function notify(ticker: string) {
+    dynamoDB.update({
+        TableName: 'scantable_20240904',
+        // TableName: "scantable_" + getTableName(),
+        Key: { "ticker": ticker },
+        UpdateExpression: 'SET #booleanAttr = :newValue',
+        ExpressionAttributeNames: {
+            '#booleanAttr': 'notify'
+        },
+        ExpressionAttributeValues: {
+            ':newValue': "True"
+        },
+    }, (err: Error, data: any) => {
+        if (err) {
+            console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+        } else {
+            console.log('Item updated:', JSON.stringify(data, null, 2));
+        }
+    });
+}
+async function unotify(ticker: string) {
+    dynamoDB.update({
+        TableName: 'scantable_20240904',
+        // TableName: "scantable_" + getTableName(),
+        Key: { "ticker": ticker },
+        UpdateExpression: 'SET #booleanAttr = :newValue',
+        ExpressionAttributeNames: {
+            '#booleanAttr': 'notify'
+        },
+        ExpressionAttributeValues: {
+            ':newValue': "False"
+        },
+    }, (err: Error, data: any) => {
+        if (err) {
+            console.error('Unable to update item. Error JSON:', JSON.stringify(err, null, 2));
+        } else {
+            console.log('Item updated:', JSON.stringify(data, null, 2));
+        }
+    });
+}
+async function notifyAll() {
+    for(const record of SCAN_DATA.records) {
+        notify(record.ticker)
+    }
+}
+async function unotifyAll() {
+    for(const record of SCAN_DATA.records) {
+        unotify(record.ticker)
+    }
 }
 async function remove(ticker: string) {
     const params = {
@@ -395,5 +448,13 @@ export default {
     deactivateAlerts,
     intrade,
     activeTicker,
-    detrade
+    detrade,
+    notify,
+    unotify,
+    notifyAll,
+    unotifyAll
+}
+
+const person = {
+    name: 1
 }
